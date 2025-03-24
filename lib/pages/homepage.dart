@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:projects/pages/profile_page.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../backend.dart'; // Import the backend file
 import '../pages/teacher_group_page.dart'; // Import Teacher Group Page
 import '../pages/student_group_page.dart';
+import '../background_service.dart'; // Import background service
 
 class IVTrackingHome extends StatefulWidget {
   @override
@@ -29,6 +31,8 @@ class _IVTrackingHomeState extends State<IVTrackingHome> {
   @override
   void initState() {
     super.initState();
+    requestLocationPermission(); // Request location permission
+    startBackgroundTracking(); // This should now work!
     _fetchUserRole(); // Fetch user role from backend
     _loadGeofencesForGroup("groupId123"); // Load geofences for the group
   }
@@ -41,21 +45,37 @@ class _IVTrackingHomeState extends State<IVTrackingHome> {
   void _loadGeofencesForGroup(String groupId) async {
     final geofences = await Backend.fetchGeofencesForGroup(groupId);
     setState(() {
-      geofenceCircles = geofences.map((geofence) {
+      if (geofences.isNotEmpty) {
+        final latestGeofence = geofences.last;
         final center = LatLng(
-          geofence['center']['lat'],
-          geofence['center']['lng'],
+          latestGeofence['center']['lat'],
+          latestGeofence['center']['lng'],
         );
-        return Circle(
-          circleId: CircleId(center.toString()),
-          center: center,
-          radius: geofence['radius'],
-          fillColor: Colors.blue.withOpacity(0.5),
-          strokeColor: Colors.blue,
-          strokeWidth: 2,
-        );
-      }).toSet();
+        geofenceCircles = {
+          Circle(
+            circleId: CircleId(center.toString()),
+            center: center,
+            radius: latestGeofence['radius'],
+            fillColor: Colors.blue.withOpacity(0.5),
+            strokeColor: Colors.blue,
+            strokeWidth: 2,
+          ),
+        };
+      } else {
+        geofenceCircles.clear();
+      }
     });
+  }
+
+  Future<void> requestLocationPermission() async {
+    var status = await Permission.locationAlways.request();
+    if (status.isGranted) {
+      print("Location Permission Granted");
+    } else if (status.isDenied) {
+      print("Location Permission Denied");
+    } else if (status.isPermanentlyDenied) {
+      openAppSettings(); // Opens settings if permanently denied
+    }
   }
 
   @override
@@ -81,15 +101,10 @@ class _IVTrackingHomeState extends State<IVTrackingHome> {
               padding: EdgeInsets.zero,
               children: [
                 DrawerHeader(
-                  decoration: BoxDecoration(
-                    color: Colors.blue,
-                  ),
-                  child: Text(
-                    'Menu',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                    ),
+                  decoration: BoxDecoration(color: Colors.blue),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [],
                   ),
                 ),
                 ListTile(
@@ -104,9 +119,13 @@ class _IVTrackingHomeState extends State<IVTrackingHome> {
                   title: Text('Groups'),
                   onTap: () {
                     if (userRole == 'teacher') {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => GroupPage()));
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => GroupPage()));
                     } else {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => StudentPage()));
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => StudentPage()));
                     }
                   },
                 ),
@@ -157,100 +176,8 @@ class _IVTrackingHomeState extends State<IVTrackingHome> {
                 circles: geofenceCircles, // Display geofences
               ),
               // Bottom Navigation Bar
-              Positioned(
-                bottom: 20,
-                left: 20,
-                right: 20,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  padding: EdgeInsets.all(10),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.map, size: 30, color: Colors.blue),
-                        onPressed: () {},
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.group, size: 30, color: Colors.blue),
-                        onPressed: () {},
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.person, size: 30, color: Colors.blue),
-                        onPressed: () {},
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Teacher-specific Edit Button
-              if (userRole == 'teacher')
-                Positioned(
-                  bottom: 120,
-                  left: 20,
-                  child: FloatingActionButton(
-                    backgroundColor: Colors.white.withOpacity(0.9),
-                    elevation: 5,
-                    child: Icon(Icons.edit, color: Colors.blue),
-                    onPressed: () {
-                      setState(() {
-                        isSliderVisible = !isSliderVisible;
-                      });
-                      // TODO: When slider value changes
-                      // 1. Update circle radius on map
-                      // 2. Update geofence radius
-                      // 3. Save changes to Firebase
-                    },
-                  ),
-                ),
-
-              // Slider for geofence radius
-              if (userRole == 'teacher' && isSliderVisible)
-                Positioned(
-                  bottom: 180,
-                  left: 20,
-                  child: Container(
-                    width: 200,
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 10,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('Edit radius'),
-                        Slider(
-                          value: 0.5,
-                          onChanged: (value) {
-                            // TODO: Implement radius change
-                            // 1. Update circle radius on map
-                            // 2. Update geofence radius in Firebase
-                            // 3. Trigger geofence update
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              //removed bottom navigation bar
+              // Removed Teacher-specific Edit Button
             ],
           ),
         );
@@ -314,7 +241,7 @@ class _IVTrackingHomeState extends State<IVTrackingHome> {
                                 geofenceCircles = {
                                   Circle(
                                     circleId:
-                                    CircleId(selectedLocation.toString()),
+                                        CircleId(selectedLocation.toString()),
                                     center: selectedLocation!,
                                     radius: geofenceRadius,
                                     fillColor: Colors.blue.withOpacity(0.5),
@@ -329,6 +256,9 @@ class _IVTrackingHomeState extends State<IVTrackingHome> {
                         ElevatedButton(
                           onPressed: () async {
                             if (selectedLocation != null) {
+                              // Delete old geofence data before saving the new one
+                              await Backend.deleteOldGeofenceFromFirebase(
+                                  "groupId123"); // Replace with actual group ID
                               await Backend.saveGeofenceToFirebase(
                                   selectedLocation!,
                                   geofenceRadius,

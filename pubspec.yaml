@@ -44,6 +44,8 @@ dependencies:
   google_maps_flutter: ^2.10.1
   location: ^8.0.0
   workmanager: ^0.5.2
+  permission_handler: ^11.4.0
+  geolocator: ^13.0.3
 dev_dependencies:
   flutter_test:
     sdk: flutter

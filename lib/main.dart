@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-
+import 'package:workmanager/workmanager.dart';
+import 'background_service.dart';
 import 'package:projects/components/splash_screen.dart';
 
 import './components/student_teacher.dart';
@@ -17,6 +18,8 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  Workmanager().initialize(callbackDispatcher,
+      isInDebugMode: true); // Initialize background service
   runApp(const MyApp());
 }
 

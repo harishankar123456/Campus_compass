@@ -53,4 +53,20 @@ class Backend {
       return [];
     }
   }
+
+  static Future<void> deleteOldGeofenceFromFirebase(String groupId) async {
+    FirebaseFirestore firestore = FirebaseFirestore.instance;
+    CollectionReference geofenceCollection = firestore.collection('geofences');
+
+    // Query for geofences associated with the groupId
+    QuerySnapshot existingGeofences =
+        await geofenceCollection.where('groupId', isEqualTo: groupId).get();
+
+    // Delete all matching geofences
+    for (var doc in existingGeofences.docs) {
+      await doc.reference.delete();
+    }
+
+    print("Old geofences for groupId $groupId deleted successfully!");
+  }
 }
