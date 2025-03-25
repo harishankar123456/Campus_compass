@@ -27,8 +27,9 @@ class Backend {
       final geofenceData = {
         'center': {'lat': center.latitude, 'lng': center.longitude},
         'radius': radius,
-        'groupId': groupId, // Store the group ID
-        'createdBy': FirebaseAuth.instance.currentUser?.uid, // Store teacher ID
+        'groupId': groupId, // Store the corresponding group ID
+        'createdBy':
+            FirebaseAuth.instance.currentUser?.email, // Store teacher email
       };
       await FirebaseFirestore.instance
           .collection('geofences')

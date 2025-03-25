@@ -36,12 +36,10 @@ class _StudentHomePageState extends State<StudentHomePage> {
                 height: 250,
                 width: double.infinity,
                 decoration: const BoxDecoration(
-
                   image: DecorationImage(
                     image: AssetImage('assets/animations/gradient4.jpg'),
                     fit: BoxFit.cover,
                   ),
-
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -56,9 +54,9 @@ class _StudentHomePageState extends State<StudentHomePage> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
-                      'Student',
-                      style: TextStyle(
+                    Text(
+                      _auth.currentUser?.displayName ?? 'Student',
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFFF9F9F9), // Lightest shade for contrast

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart'; // Add this import
 
 class StudentPage extends StatefulWidget {
   @override
@@ -8,12 +9,14 @@ class StudentPage extends StatefulWidget {
 }
 
 class StudentPageState extends State<StudentPage> {
+  final FirebaseAuth _auth = FirebaseAuth.instance; // Add this line
   List<String> alerts = ['Welcome to the group!'];
   TextEditingController studentMessageController = TextEditingController();
   File? _image;
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
@@ -27,17 +30,24 @@ class StudentPageState extends State<StudentPage> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.white24,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Text('Previous Alerts', style: TextStyle(color: Colors.white)),
           content: Container(
             width: double.maxFinite,
             child: ListView(
               shrinkWrap: true,
-              children: alerts.map((alert) => ListTile(title: Text(alert, style: TextStyle(color: Colors.white)))).toList(),
+              children: alerts
+                  .map((alert) => ListTile(
+                      title:
+                          Text(alert, style: TextStyle(color: Colors.white))))
+                  .toList(),
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text('Close', style: TextStyle(color: Colors.white))),
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Close', style: TextStyle(color: Colors.white))),
           ],
         );
       },
@@ -50,15 +60,21 @@ class StudentPageState extends State<StudentPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: Colors.white24,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('Send Message to Teacher', style: TextStyle(color: Colors.white)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('Send Message to Teacher',
+              style: TextStyle(color: Colors.white)),
           content: TextField(
             controller: studentMessageController,
-            decoration: InputDecoration(hintText: 'Type your message here...', hintStyle: TextStyle(color: Colors.white54)),
+            decoration: InputDecoration(
+                hintText: 'Type your message here...',
+                hintStyle: TextStyle(color: Colors.white54)),
             style: TextStyle(color: Colors.white),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel', style: TextStyle(color: Colors.white))),
+            TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Cancel', style: TextStyle(color: Colors.white))),
             TextButton(
               onPressed: () {
                 studentMessageController.clear();
@@ -83,7 +99,9 @@ class StudentPageState extends State<StudentPage> {
             padding: EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: Colors.black.withOpacity(0.7),
-              borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
+              borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40)),
             ),
             child: Column(
               children: [
@@ -92,12 +110,20 @@ class StudentPageState extends State<StudentPage> {
                   child: CircleAvatar(
                     radius: 60,
                     backgroundColor: Colors.white,
-                    backgroundImage: _image != null ? FileImage(_image!) : AssetImage("assets/animations/profile.jpg") as ImageProvider,
+                    backgroundImage: _image != null
+                        ? FileImage(_image!)
+                        : AssetImage("assets/animations/profile.jpg")
+                            as ImageProvider,
                   ),
                 ),
                 SizedBox(height: 10),
-                Text('Student Name', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                Text('Group Name', style: TextStyle(fontSize: 14, color: Colors.white70)),
+                Text(_auth.currentUser?.displayName ?? 'Student',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
+                Text('Group Name',
+                    style: TextStyle(fontSize: 14, color: Colors.white70)),
               ],
             ),
           ),
@@ -108,12 +134,18 @@ class StudentPageState extends State<StudentPage> {
                 padding: EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  image: DecorationImage(image: AssetImage("assets/animations/gradient1.jpg"), fit: BoxFit.cover),
+                  image: DecorationImage(
+                      image: AssetImage("assets/animations/gradient1.jpg"),
+                      fit: BoxFit.cover),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Group Alerts', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                    Text('Group Alerts',
+                        style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white)),
                     SizedBox(height: 10),
                     Expanded(
                       child: ListView.builder(
@@ -126,8 +158,10 @@ class StudentPageState extends State<StudentPage> {
                               color: Colors.white10,
                             ),
                             child: ListTile(
-                              leading: Icon(Icons.notifications, color: Colors.white),
-                              title: Text(alerts[index], style: TextStyle(color: Colors.white)),
+                              leading: Icon(Icons.notifications,
+                                  color: Colors.white),
+                              title: Text(alerts[index],
+                                  style: TextStyle(color: Colors.white)),
                             ),
                           );
                         },
@@ -159,12 +193,14 @@ class StudentPageState extends State<StudentPage> {
                   TextButton.icon(
                     onPressed: showStudentMessageDialog,
                     icon: Icon(Icons.message, color: Colors.white),
-                    label: Text("Message Teacher", style: TextStyle(color: Colors.white)),
+                    label: Text("Message Teacher",
+                        style: TextStyle(color: Colors.white)),
                   ),
                   TextButton.icon(
                     onPressed: showMessagesDialog,
                     icon: Icon(Icons.history, color: Colors.white),
-                    label: Text("Alerts History", style: TextStyle(color: Colors.white)),
+                    label: Text("Alerts History",
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ],
               ),

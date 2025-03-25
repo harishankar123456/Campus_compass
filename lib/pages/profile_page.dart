@@ -27,24 +27,31 @@ class _ProfilePageState extends State<ProfilePage> {
     _fetchUserDetails(); // Fetch user details when page loads
   }
 
-  /// 🔥 Fetches user details from Firestore based on current logged-in user
+  /// 🔥 Fetches user details from Firestore based on current logged-in user's email
   Future<void> _fetchUserDetails() async {
     try {
       User? user =
           FirebaseAuth.instance.currentUser; // Get currently logged-in user
       if (user != null) {
-        userId = user.uid; // Store user ID
-
-        final userDoc = await FirebaseFirestore.instance
+        final userQuery = await FirebaseFirestore.instance
             .collection('users')
-            .doc(userId)
+            .where('email', isEqualTo: user.email) // Query by email
+            .limit(1) // Ensure only one document is retrieved
             .get();
-        if (userDoc.exists) {
-          final data = userDoc.data();
+
+        if (userQuery.docs.isNotEmpty) {
+          final userDoc =
+              userQuery.docs.first; // Get the first matching document
           setState(() {
-            nameController.text = data?['username'] ?? "User"; // Fetch username
+            nameController.text =
+                userDoc['username'] ?? "User"; // Fetch username
             emailController.text =
-                data?['email'] ?? "user@example.com"; // Fetch email
+                userDoc['email'] ?? "user@example.com"; // Fetch email
+            phoneController.text =
+                userDoc['phone'] ?? "+1234567890"; // Fetch phone
+            schoolController.text =
+                userDoc['college'] ?? "XYZ School"; // Fetch college/school
+            roleController.text = userDoc['role'] ?? "Teacher"; // Fetch role
           });
         } else {
           print('User document does not exist');
@@ -52,6 +59,38 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     } catch (e) {
       print('Error fetching user details: $e');
+    }
+  }
+
+  /// 🔥 Updates user details in Firestore
+  Future<void> _updateUserDetails() async {
+    try {
+      User? user =
+          FirebaseAuth.instance.currentUser; // Get currently logged-in user
+      if (user != null) {
+        final userQuery = await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: user.email) // Ensure correct document
+            .limit(1)
+            .get();
+
+        if (userQuery.docs.isNotEmpty) {
+          final userDoc = userQuery.docs.first;
+
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userDoc.id) // Use document ID to update
+              .update({
+            'phone': phoneController.text.trim(),
+            'college': schoolController.text.trim(),
+            'updatedAt': FieldValue.serverTimestamp(), // Force update
+          });
+
+          print("User details updated successfully.");
+        }
+      }
+    } catch (e) {
+      print("Error updating user details: $e");
     }
   }
 
@@ -144,8 +183,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         children: [
                           buildTextField("Phone Number", phoneController,
                               isEditing, Icons.phone),
-                          buildTextField(
-                              "Role", roleController, isEditing, Icons.school),
+                          buildTextField("Role", roleController, false,
+                              Icons.school), // Role is not editable
                           buildTextField("College/School", schoolController,
                               isEditing, Icons.business),
                           buildTextField(
@@ -174,9 +213,10 @@ class _ProfilePageState extends State<ProfilePage> {
                               ),
                               if (isEditing)
                                 ElevatedButton(
-                                  onPressed: () {
+                                  onPressed: () async {
+                                    await _updateUserDetails(); // Update Firestore
                                     setState(() {
-                                      isEditing = false;
+                                      isEditing = false; // Exit edit mode
                                     });
                                   },
                                   style: ElevatedButton.styleFrom(

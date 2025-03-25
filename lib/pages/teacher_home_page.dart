@@ -39,7 +39,6 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           // Profile Section
           Stack(
             children: [
-
               Container(
                 height: 250,
                 width: double.infinity,
@@ -48,7 +47,6 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                     image: AssetImage('assets/animations/gradient2.jpg'),
                     fit: BoxFit.cover,
                   ),
-
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -63,9 +61,9 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    const Text(
-                      'Teacher',
-                      style: TextStyle(
+                    Text(
+                      _auth.currentUser?.displayName ?? 'Teacher',
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.white, // Accent dark gray
@@ -134,7 +132,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           boxShadow: [
             BoxShadow(
               color:
-              const Color(0xFF171616).withOpacity(0.3), // Light gray shadow
+                  const Color(0xFF171616).withOpacity(0.3), // Light gray shadow
               offset: const Offset(0, 20),
               blurRadius: 20,
             ),
@@ -145,8 +143,7 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
           backgroundColor: Colors.black, // White
           color: Colors.white, // Dark gray icons
           activeColor: Colors.black,
-          tabBackgroundColor:
-              Colors.grey, // Warm gray for selected tab
+          tabBackgroundColor: Colors.grey, // Warm gray for selected tab
           gap: 8,
           tabs: [
             GButton(

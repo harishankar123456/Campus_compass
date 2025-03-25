@@ -86,7 +86,7 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> createUserWithEmailAndPassword(BuildContext context) async {
     try {
       final userCredential =
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
@@ -105,6 +105,7 @@ class _RegisterPageState extends State<RegisterPage> {
           .collection('users')
           .doc(userCredential.user!.uid)
           .set({
+        'uid': FirebaseAuth.instance.currentUser?.uid, // ✅ Add this line
         'username': usernameController.text.trim(),
         'email': emailController.text.trim(),
         'role': selectedRole,
