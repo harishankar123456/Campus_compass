@@ -6,6 +6,7 @@ import '../backend.dart'; // Import the backend file
 import '../pages/teacher_group_page.dart'; // Import Teacher Group Page
 import '../pages/student_group_page.dart';
 import '../background_service.dart'; // Import background service
+import 'dart:math';
 
 class IVTrackingHome extends StatefulWidget {
   @override
@@ -22,6 +23,10 @@ class _IVTrackingHomeState extends State<IVTrackingHome> {
   LatLng? selectedLocation;
   Set<Circle> geofenceCircles = {};
 
+  LatLng simulatedLocation = LatLng(37.7749, -122.4194); // Initial position
+  Set<Marker> markers = {};
+  bool isInsideGeofence = true; // Track geofence status
+
   // Define the initial position of the camera
   static const CameraPosition initialCameraPosition = CameraPosition(
     target: LatLng(37.7749, -122.4194),
@@ -35,6 +40,8 @@ class _IVTrackingHomeState extends State<IVTrackingHome> {
     startBackgroundTracking(); // This should now work!
     _fetchUserRole(); // Fetch user role from backend
     _loadGeofencesForGroup("groupId123"); // Load geofences for the group
+    _setupGeofence(); // Initialize geofence
+    _updateMarker();
   }
 
   void _fetchUserRole() async {
@@ -76,6 +83,116 @@ class _IVTrackingHomeState extends State<IVTrackingHome> {
     } else if (status.isPermanentlyDenied) {
       openAppSettings(); // Opens settings if permanently denied
     }
+  }
+
+  void _setupGeofence() {
+    geofenceCircles.add(
+      Circle(
+        circleId: CircleId("geofence"),
+        center: LatLng(37.7749, -122.4194), // Geofence Center
+        radius: 100, // 100 meters radius
+        strokeColor: Colors.blue,
+        strokeWidth: 2,
+        fillColor: Colors.blue.withOpacity(0.3),
+      ),
+    );
+  }
+
+  void _updateMarker() {
+    setState(() {
+      markers.clear();
+      markers.add(
+        Marker(
+          markerId: MarkerId("simulated"),
+          position: simulatedLocation,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+        ),
+      );
+
+      if (!isPointInsideGeofence(simulatedLocation)) {
+        if (isInsideGeofence) {
+          isInsideGeofence = false;
+          print("Exited geofence!");
+          _showExitPopup();
+        }
+      } else {
+        isInsideGeofence = true;
+      }
+    });
+  }
+
+  bool isPointInsideGeofence(LatLng point) {
+    for (var circle in geofenceCircles) {
+      final distance = _calculateDistance(
+        point.latitude,
+        point.longitude,
+        circle.center.latitude,
+        circle.center.longitude,
+      );
+      if (distance <= circle.radius) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  double _calculateDistance(
+      double lat1, double lon1, double lat2, double lon2) {
+    const double earthRadius = 6371000; // meters
+    final double dLat = _degreesToRadians(lat2 - lat1);
+    final double dLon = _degreesToRadians(lon2 - lon1);
+
+    final double a = (sin(dLat / 2) * sin(dLat / 2)) +
+        cos(_degreesToRadians(lat1)) *
+            cos(_degreesToRadians(lat2)) *
+            (sin(dLon / 2) * sin(dLon / 2));
+    final double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
+    return earthRadius * c;
+  }
+
+  double _degreesToRadians(double degrees) {
+    return degrees * pi / 180;
+  }
+
+  void _showExitPopup() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Geofence Alert"),
+          content: Text("You have exited the geofence."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void moveMarker(String direction) {
+    double step = 0.0001; // Adjust for small movements
+    setState(() {
+      if (direction == "UP") {
+        simulatedLocation = LatLng(
+            simulatedLocation.latitude + step, simulatedLocation.longitude);
+      } else if (direction == "DOWN") {
+        simulatedLocation = LatLng(
+            simulatedLocation.latitude - step, simulatedLocation.longitude);
+      } else if (direction == "LEFT") {
+        simulatedLocation = LatLng(
+            simulatedLocation.latitude, simulatedLocation.longitude - step);
+      } else if (direction == "RIGHT") {
+        simulatedLocation = LatLng(
+            simulatedLocation.latitude, simulatedLocation.longitude + step);
+      }
+      _updateMarker();
+    });
   }
 
   @override
@@ -174,10 +291,39 @@ class _IVTrackingHomeState extends State<IVTrackingHome> {
                 scrollGesturesEnabled: true,
                 tiltGesturesEnabled: true,
                 circles: geofenceCircles, // Display geofences
+                markers: markers,
               ),
-              // Bottom Navigation Bar
-              //removed bottom navigation bar
-              // Removed Teacher-specific Edit Button
+              Positioned(
+                bottom: 80,
+                left: 10,
+                right: 10,
+                child: Column(
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => moveMarker("UP"),
+                      child: Text("⬆️ UP"),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () => moveMarker("LEFT"),
+                          child: Text("⬅️ LEFT"),
+                        ),
+                        SizedBox(width: 10),
+                        ElevatedButton(
+                          onPressed: () => moveMarker("RIGHT"),
+                          child: Text("➡️ RIGHT"),
+                        ),
+                      ],
+                    ),
+                    ElevatedButton(
+                      onPressed: () => moveMarker("DOWN"),
+                      child: Text("⬇️ DOWN"),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         );
