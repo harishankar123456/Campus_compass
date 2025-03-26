@@ -388,7 +388,8 @@ class _StudentHomePageState extends State<StudentHomePage> {
   Future<void> _joinGroup(String groupId) async {
     try {
       // Check if group exists
-      final groupDoc = await _firestore.collection('groups').doc(groupId).get();
+      final DocumentSnapshot groupDoc =
+          await _firestore.collection('groups').doc(groupId).get();
 
       if (!groupDoc.exists) {
         throw 'Group not found';
@@ -408,10 +409,18 @@ class _StudentHomePageState extends State<StudentHomePage> {
         throw 'You are already a member of this group';
       }
 
+      // Fetch creator's email
+      final createdBy =
+          groupDoc.exists ? groupDoc['teacherEmail'] : 'Unknown Creator';
+
       // Join the group
       await _firestore.collection('group_members').add({
         'groupId': groupId,
         'userId': userId,
+        'username': _auth.currentUser?.displayName ?? 'Unknown User',
+        'email': _auth.currentUser?.email ?? 'Unknown Email',
+        'createdBy':
+            createdBy, // Now it correctly fetches the email of the teacher
         'joinedAt': FieldValue.serverTimestamp(),
       });
 

@@ -70,4 +70,22 @@ class Backend {
 
     print("Old geofences for groupId $groupId deleted successfully!");
   }
+
+  // Fetch the group name from Firebase
+  static Future<String?> getGroupName(String groupId) async {
+    try {
+      DocumentSnapshot groupDoc = await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(groupId)
+          .get();
+
+      if (groupDoc.exists) {
+        return groupDoc['name']; // Assuming 'groupName' is the field name
+      }
+      return null;
+    } catch (e) {
+      print("Error fetching group name: $e");
+      return null;
+    }
+  }
 }

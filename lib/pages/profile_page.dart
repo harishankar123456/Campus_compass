@@ -25,6 +25,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     _fetchUserDetails(); // Fetch user details when page loads
+    _fetchUserName(); // Fetch user name from authentication
   }
 
   /// 🔥 Fetches user details from Firestore based on current logged-in user's email
@@ -59,6 +60,17 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     } catch (e) {
       print('Error fetching user details: $e');
+    }
+  }
+
+  /// 🔥 Fetches user name from Firebase Authentication
+  void _fetchUserName() {
+    User? user =
+        FirebaseAuth.instance.currentUser; // Get currently logged-in user
+    if (user != null) {
+      setState(() {
+        nameController.text = user.displayName ?? "User"; // Fetch display name
+      });
     }
   }
 
@@ -147,7 +159,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     SizedBox(height: 15),
                     Text(
-                      nameController.text,
+                      nameController.text, // Display name from authentication
                       style: TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.bold,
@@ -187,8 +199,8 @@ class _ProfilePageState extends State<ProfilePage> {
                               Icons.school), // Role is not editable
                           buildTextField("College/School", schoolController,
                               isEditing, Icons.business),
-                          buildTextField(
-                              "Email", emailController, isEditing, Icons.email),
+                          buildTextField("Email", emailController, false,
+                              Icons.email), // Email is not editable
                           SizedBox(height: 20),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() {
   runApp(MyApp());
@@ -26,6 +27,8 @@ class GroupPage extends StatefulWidget {
 
 class _GroupPageState extends State<GroupPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance; // Define _auth
+  final FirebaseFirestore _firestore =
+      FirebaseFirestore.instance; // Firestore instance
   List<String> students = ['Student 1', 'Student 2', 'Student 3', 'Student 4'];
   List<String> alerts = [];
   TextEditingController alertController = TextEditingController();
@@ -81,9 +84,21 @@ class _GroupPageState extends State<GroupPage> {
                 onPressed: () => Navigator.pop(context),
                 child: Text('Cancel', style: TextStyle(color: Colors.white))),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                String message = alertController.text;
+                String email = _auth.currentUser?.email ?? 'Unknown';
+                String username = _auth.currentUser?.displayName ?? 'Unknown';
+                Timestamp timestamp = Timestamp.now();
+
+                // Store alert in Firestore
+                await _firestore.collection('alerts').add({
+                  'message': message,
+                  'email': email,
+                  'username': username,
+                  'timestamp': timestamp,
+                });
+
                 setState(() {
-                  alerts.add(alertController.text);
                   alertController.clear();
                 });
                 Navigator.pop(context);
@@ -107,13 +122,34 @@ class _GroupPageState extends State<GroupPage> {
           title: Text('Previous Alerts', style: TextStyle(color: Colors.white)),
           content: Container(
             width: double.maxFinite,
-            child: ListView(
-              shrinkWrap: true,
-              children: alerts
-                  .map((alert) => ListTile(
-                      title:
-                          Text(alert, style: TextStyle(color: Colors.white))))
-                  .toList(),
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('alerts')
+                  .orderBy('timestamp', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Text('No alerts found.',
+                      style: TextStyle(color: Colors.white));
+                }
+                return ListView(
+                  shrinkWrap: true,
+                  children: snapshot.data!.docs.map((doc) {
+                    Map<String, dynamic> data =
+                        doc.data() as Map<String, dynamic>;
+                    return ListTile(
+                      title: Text(data['message'] ?? '',
+                          style: TextStyle(color: Colors.white)),
+                      subtitle: Text(
+                          '${data['username'] ?? 'Unknown'} (${data['email'] ?? 'Unknown'}) - ${data['timestamp'].toDate()}',
+                          style: TextStyle(color: Colors.white70)),
+                    );
+                  }).toList(),
+                );
+              },
             ),
           ),
           actions: [

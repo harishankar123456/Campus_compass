@@ -388,6 +388,8 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
         'name': _groupNameController.text.trim(),
         'description': _groupDescController.text.trim(),
         'teacherId': user.uid,
+        'teacherName': user.displayName ?? 'Unknown', // Store username
+        'teacherEmail': user.email ?? 'Unknown', // Store email
         'createdAt': FieldValue.serverTimestamp(),
         'groupId': groupId,
       });
