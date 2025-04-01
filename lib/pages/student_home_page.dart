@@ -204,8 +204,8 @@ class _StudentHomePageState extends State<StudentHomePage> {
   Widget _buildGroupsSection() {
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore
-          .collection('group_members')
-          .where('userId', isEqualTo: _auth.currentUser?.uid)
+          .collection('groups')
+          .where('members.${_auth.currentUser?.uid}', isEqualTo: true)
           .snapshots(),
       builder: (context, membershipSnapshot) {
         if (membershipSnapshot.hasError) {
@@ -264,8 +264,8 @@ class _StudentHomePageState extends State<StudentHomePage> {
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: _firestore
-                    .collection('group_members')
-                    .where('userId', isEqualTo: _auth.currentUser?.uid)
+                    .collection('groups')
+                    .where('members.${_auth.currentUser?.uid}', isEqualTo: true)
                     .snapshots(),
                 builder: (context, membershipSnapshot) {
                   if (!membershipSnapshot.hasData) {
@@ -276,33 +276,15 @@ class _StudentHomePageState extends State<StudentHomePage> {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemCount: membershipSnapshot.data!.docs.length,
                     itemBuilder: (context, index) {
-                      final membership = membershipSnapshot.data!.docs[index];
-                      final groupId = membership['groupId'];
+                      final groupData = membershipSnapshot.data!.docs[index]
+                          .data() as Map<String, dynamic>;
 
-                      return FutureBuilder<DocumentSnapshot>(
-                        future:
-                            _firestore.collection('groups').doc(groupId).get(),
-                        builder: (context, groupSnapshot) {
-                          if (!groupSnapshot.hasData) {
-                            return const SizedBox();
-                          }
-
-                          final groupData = groupSnapshot.data!.data()
-                                  as Map<String, dynamic>? ??
-                              {
-                                'name': 'Deleted Group',
-                                'description': 'This group no longer exists'
-                              };
-
-                          return _buildGroupCard({
-                            'name': groupData['name']?.toString() ??
-                                'Unnamed Group',
-                            'description':
-                                groupData['description']?.toString() ??
-                                    'No description',
-                          });
-                        },
-                      );
+                      return _buildGroupCard({
+                        'name':
+                            groupData['name']?.toString() ?? 'Unnamed Group',
+                        'description': groupData['description']?.toString() ??
+                            'No description',
+                      });
                     },
                   );
                 },
@@ -396,16 +378,21 @@ class _StudentHomePageState extends State<StudentHomePage> {
       }
 
       final userId = _auth.currentUser?.uid;
-      if (userId == null) return;
+      if (userId == null) {
+        print('User ID is NULL! Cannot join group.');
+        return;
+      }
+      print('User ID: $userId');
 
       // Check if already joined
-      final existingMembership = await _firestore
-          .collection('group_members')
-          .where('groupId', isEqualTo: groupId)
-          .where('userId', isEqualTo: userId)
+      final DocumentSnapshot existingMembership = await _firestore
+          .collection('groups')
+          .doc(groupId)
+          .collection('members')
+          .doc(userId)
           .get();
 
-      if (existingMembership.docs.isNotEmpty) {
+      if (existingMembership.exists) {
         throw 'You are already a member of this group';
       }
 
@@ -413,15 +400,23 @@ class _StudentHomePageState extends State<StudentHomePage> {
       final createdBy =
           groupDoc.exists ? groupDoc['teacherEmail'] : 'Unknown Creator';
 
-      // Join the group
-      await _firestore.collection('group_members').add({
-        'groupId': groupId,
+      // Add the user as a member inside the `members` subcollection
+      await _firestore
+          .collection('groups')
+          .doc(groupId)
+          .collection('members')
+          .doc(userId)
+          .set({
         'userId': userId,
         'username': _auth.currentUser?.displayName ?? 'Unknown User',
         'email': _auth.currentUser?.email ?? 'Unknown Email',
-        'createdBy':
-            createdBy, // Now it correctly fetches the email of the teacher
+        'createdBy': createdBy,
         'joinedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Add the user ID to the members map at the group document level
+      await _firestore.collection('groups').doc(groupId).update({
+        'members.${userId}': true, // Add user to the members field
       });
 
       if (mounted) {

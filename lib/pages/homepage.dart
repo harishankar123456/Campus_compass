@@ -109,14 +109,16 @@ class _IVTrackingHomeState extends State<IVTrackingHome> {
         ),
       );
 
-      if (!isPointInsideGeofence(simulatedLocation)) {
-        if (isInsideGeofence) {
-          isInsideGeofence = false;
-          print("Exited geofence!");
-          _showExitPopup();
-        }
-      } else {
+      bool isNowInside = isPointInsideGeofence(simulatedLocation);
+
+      if (!isNowInside && isInsideGeofence) {
+        isInsideGeofence = false;
+        print("Exited geofence!");
+        _showGeofencePopup("Exited Geofence", "User exited the geofence.");
+      } else if (isNowInside && !isInsideGeofence) {
         isInsideGeofence = true;
+        print("Entered geofence!");
+        _showGeofencePopup("Entered Geofence", "User entered the geofence.");
       }
     });
   }
@@ -161,7 +163,27 @@ class _IVTrackingHomeState extends State<IVTrackingHome> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text("Geofence Alert"),
-          content: Text("You have exited the geofence."),
+          content: Text("User exited the geofence."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showGeofencePopup(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
           actions: [
             TextButton(
               onPressed: () {

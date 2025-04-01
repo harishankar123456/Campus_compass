@@ -398,6 +398,10 @@ class _TeacherHomePageState extends State<TeacherHomePage> {
       _groupDescController.clear();
 
       // Show success message
+      _groupNameController.clear();
+      _groupDescController.clear();
+
+      // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Group created successfully!')),
